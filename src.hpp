@@ -21,6 +21,7 @@ private:
         
         Node(const Key& k) : key(k), color(RED), left(nullptr), right(nullptr), parent(nullptr) {}
         Node(Key&& k) : key(std::move(k)), color(RED), left(nullptr), right(nullptr), parent(nullptr) {}
+        Node() : color(BLACK), left(nullptr), right(nullptr), parent(nullptr) {}
     };
     
     Node* root;
@@ -29,8 +30,7 @@ private:
     Compare comp;
     
     void init() {
-        NIL = new Node(Key());
-        NIL->color = BLACK;
+        NIL = new Node();
         NIL->left = NIL->right = NIL->parent = NIL;
         root = NIL;
         sz = 0;
@@ -226,22 +226,42 @@ private:
     
     size_t countRangeOptimized(const Key& l, const Key& r) const {
         size_t count = 0;
-        Node* lower = lower_bound(l).node;
-        Node* upper = upper_bound(r).node;
+        Node* current = root;
         
-        while (lower != upper && lower != NIL) {
-            if (!comp(r, lower->key) && !comp(lower->key, l)) {
-                count++;
-            }
-            if (lower->right != NIL) {
-                lower = minimum(lower->right);
+        while (current != NIL) {
+            if (comp(current->key, l)) {
+                current = current->right;
+            } else if (comp(r, current->key)) {
+                current = current->left;
             } else {
-                Node* p = lower->parent;
-                while (p != NIL && lower == p->right) {
-                    lower = p;
-                    p = p->parent;
+                count++;
+                if (current->left != NIL) {
+                    Node* left = current->left;
+                    while (left != NIL) {
+                        if (!comp(left->key, l)) {
+                            if (!comp(r, left->key)) {
+                                count++;
+                            }
+                            left = left->left;
+                        } else {
+                            left = left->right;
+                        }
+                    }
                 }
-                lower = p;
+                if (current->right != NIL) {
+                    Node* right = current->right;
+                    while (right != NIL) {
+                        if (!comp(right->key, l)) {
+                            if (!comp(r, right->key)) {
+                                count++;
+                            }
+                            right = right->left;
+                        } else {
+                            right = right->right;
+                        }
+                    }
+                }
+                break;
             }
         }
         
@@ -296,7 +316,7 @@ public:
                 }
                 return *this;
             }
-            if (node == set->minimum(set->root)) {
+            if (set && node == set->minimum(set->root)) {
                 return *this;
             }
             if (node->left != NIL) {
@@ -489,7 +509,7 @@ public:
         if (comp(r, l)) {
             return 0;
         }
-        return countRangeOptimized(l, r);
+        return countRange(root, l, r);
     }
     
     size_t size() const noexcept {

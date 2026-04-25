@@ -224,6 +224,30 @@ private:
         return 1 + countRange(node->left, l, r) + countRange(node->right, l, r);
     }
     
+    size_t countRangeOptimized(const Key& l, const Key& r) const {
+        size_t count = 0;
+        Node* lower = lower_bound(l).node;
+        Node* upper = upper_bound(r).node;
+        
+        while (lower != upper && lower != NIL) {
+            if (!comp(r, lower->key) && !comp(lower->key, l)) {
+                count++;
+            }
+            if (lower->right != NIL) {
+                lower = minimum(lower->right);
+            } else {
+                Node* p = lower->parent;
+                while (p != NIL && lower == p->right) {
+                    lower = p;
+                    p = p->parent;
+                }
+                lower = p;
+            }
+        }
+        
+        return count;
+    }
+    
 public:
     class iterator {
     private:
@@ -236,14 +260,14 @@ public:
         iterator(Node* n, Node* nilNode, const ESet* s) : node(n), NIL(nilNode), set(s) {}
         
         const Key& operator*() const {
-            if (node == NIL) {
+            if (node == NIL || node == nullptr) {
                 throw std::out_of_range("Iterator dereferenced end()");
             }
             return node->key;
         }
         
         iterator& operator++() {
-            if (node == NIL) {
+            if (node == NIL || node == nullptr) {
                 return *this;
             }
             if (node->right != NIL) {
@@ -266,11 +290,13 @@ public:
         }
         
         iterator& operator--() {
-            if (node == set->minimum(set->root)) {
+            if (node == NIL || node == nullptr) {
+                if (set && set->root != set->NIL) {
+                    node = set->maximum(set->root);
+                }
                 return *this;
             }
-            if (node == NIL) {
-                node = set->maximum(set->root);
+            if (node == set->minimum(set->root)) {
                 return *this;
             }
             if (node->left != NIL) {
@@ -463,7 +489,7 @@ public:
         if (comp(r, l)) {
             return 0;
         }
-        return countRange(root, l, r);
+        return countRangeOptimized(l, r);
     }
     
     size_t size() const noexcept {
